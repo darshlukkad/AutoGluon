@@ -1,71 +1,122 @@
-# California House Prices — AutoGluon Fast Baseline
+# California House Prices — AutoGluon (Colab) ⚡
 
-A clean, reproducible baseline for the Kaggle competition **`california-house-prices`** using [AutoGluon Tabular](https://auto.gluon.ai/). The script is optimized for **Google Colab** and aims to get you from zero to a valid submission quickly, with sensible defaults, clear structure, and speed-focused settings.
-
-> ✨ This repo prioritizes *speed* and *clarity*: single-model LightGBM, log1p preprocessing, deterministic splits, and a small time budget. It’s great for academic demos and fast iteration.
-
-## Contents
-
-- [What this script does](#what-this-script-does)
-- [Google Colab: End-to-End Guide](#google-colab-end-to-end-guide)
-- [Configuration knobs](#configuration-knobs)
-- [Data & preprocessing](#data--preprocessing)
-- [Modeling & training](#modeling--training)
-- [Evaluation & metrics](#evaluation--metrics)
-- [Submission](#submission)
-- [Reproducibility](#reproducibility)
-- [Speed vs. quality: tuning tips](#speed-vs-quality-tuning-tips)
-- [Local setup (optional)](#local-setup-optional)
-- [Troubleshooting](#troubleshooting)
-- [Notes & acknowledgements](#notes--acknowledgements)
-- [License](#license)
-
-## What this script does
-
-1. **Installs** dependencies: `kaggle`, `autogluon.tabular`, `scikit-learn`.  
-2. **Authenticates** the Kaggle CLI using your `kaggle.json` API token.  
-3. **Downloads & unzips** the competition files to a chosen data directory.  
-4. **Loads** `train.csv`, `test.csv`, and `sample_submission.csv`.  
-5. **Preprocesses** features:
-   - drops obvious ID columns (`Id`/`id`) if present,
-   - `log1p` transforms **all numeric features** (non-negative clipped),
-   - `log1p` transforms the **target** (`"Sold Price"`) for stability,
-   - downcasts numerics to `float32` for speed/memory.
-6. **Splits** the data (deterministic):  
-   - 10% **final holdout** (never seen during training),  
-   - from the remaining 90%, 10% becomes a **dev/validation** set.  
-   - Effective split ≈ **81% train / 9% dev / 10% holdout**.
-7. **Trains** a **single LightGBM model** via AutoGluon with a tight **time budget (`TL`)**.
-8. **Evaluates** on the holdout set (log-RMSE) and also prints **dollar-scale RMSE**.
-9. **Predicts** on `test.csv` and writes a **`submission.csv`** in the model folder.
-10. **Submits** to Kaggle via CLI and lists your latest submissions.
+A fast, reproducible pipeline to:
+1) download a Kaggle competition dataset,  
+2) train a lightweight AutoGluon (LightGBM-only) regressor under a tight time budget,  
+3) evaluate on a holdout split, and  
+4) generate & submit `submission.csv` to Kaggle — all from Google Colab.
 
 ---
 
-## Google Colab: End-to-End Guide
+## What this script does
 
-This project is designed to run smoothly on **Google Colab**. Here’s everything you need to know to go from a blank notebook to a Kaggle submission:
+- **Setup & config**
+  - Defines competition name (`california-house-prices`), data dirs, and AutoGluon model path.
+  - Installs `kaggle`, `autogluon.tabular`, and `scikit-learn`.
+  - Mounts Google Drive (assumes you’ll provide `kaggle.json` creds).
 
-### 1) Prepare your Kaggle API token
+- **Data acquisition**
+  - Copies `kaggle.json` into `~/.kaggle/` and sets permissions.
+  - Downloads the competition ZIP to `DATA_DIR`, unzips to `DATASET`, and lists files.
 
-- Go to **Kaggle → Account → API → Create New Token**.  
-- You’ll download a file named **`kaggle.json`**. Keep it handy.
+- **Fast training loop (demo-friendly)**
+  - Loads `train.csv`, `test.csv`, and `sample_submission.csv`.
+  - **Speed tricks**:
+    - Caps training rows to `N_TRAIN = 20_000` (deterministic sample).
+    - Uses **LightGBM only** for rapid training.
+    - Sets `time_limit = TL` (default 300s) and uses all available CPU threads.
+  - **Preprocessing**:
+    - Drops obvious ID columns (`Id`/`id`) if present.
+    - Applies **log1p** to numeric features and **target** (`Sold Price`), then downcasts to `float32`.
+  - **Splits**:
+    - 10% **final holdout** (never seen during training).
+    - From the remaining 90%, uses 10% as **dev/tuning** data.
+  - **Training**:
+    - AutoGluon `TabularPredictor` with `presets="good_quality"`, LightGBM hyperparams, fixed seeds.
+    - No bagging / stacking to keep things fast.
+  - **Evaluation & export**:
+    - Prints **log-scale RMSE** on the holdout.
+    - Also computes **dollar-scale RMSE** by inverting the log1p transform.
+    - Predicts on test, writes **`submission.csv`** under `AutoGluonModels/<run>/submission.csv`.
 
-### 2) Choose where to put `kaggle.json` in Colab
+- **Submission to Kaggle**
+  - Picks the most recent `submission.csv`.
+  - Runs `kaggle competitions submit` with a short message.
+  - Shows the latest submissions table (top lines).
 
-You have two easy options—**either is fine**. The script supports both:
+---
 
-**Option A — Upload directly to `/content` (fastest):**
-1. In Colab, click the **folder** icon (left sidebar) → **Upload** → pick `kaggle.json`.
-2. It will appear as `/content/kaggle.json`.
+## Requirements
 
-**Option B — Store in Google Drive (persists across sessions):**
-1. Put `kaggle.json` somewhere in Drive, e.g. `MyDrive/kaggle/kaggle.json`.
-2. The script mounts Drive and you can copy from there (see next steps).
+- **Google Colab** runtime (recommended).
+- A valid **Kaggle API token** (`kaggle.json`) with competition access.
+- Enough disk space in Colab (the dataset is auto-downloaded).
 
-> The default script copies from `/content/kaggle.json`. If you prefer Drive, change the copy command to the Drive path (example below).
+---
 
-### 3) Install packages (first notebook cell)
+## Quickstart (Colab)
 
-```python
-!pip install -q kaggle autogluon.tabular scikit-learn
+1. **Open a Colab notebook** and paste the script.
+2. **Add your Kaggle API token**:
+   - Download `kaggle.json` from your Kaggle account (Account → API → Create New Token).
+   - Upload it to Colab root as `/content/kaggle.json` (the script expects this exact path).
+3. **Run all cells**:
+   - The script will install packages, mount Drive, download data, train, evaluate, save `submission.csv`, and submit to Kaggle.
+
+> If Drive mounting prompts appear, accept them. If the competition is private or requires rules acceptance, do that on Kaggle first.
+
+---
+
+## Key parameters you might tweak
+
+| Variable | What it controls | Default |
+|---|---|---|
+| `KAGGLE_COMPETITION` | Kaggle competition slug | `"california-house-prices"` |
+| `DATA_DIR` | Root data folder | `"/content/data"` |
+| `AUTOGLUON_SAVE_PATH` | Where models & outputs go | `"/content/data/AutoGluonModels"` |
+| `SEED` | Reproducibility | `42` |
+| `N_TRAIN` | Row cap for speed | `20_000` |
+| `TL` | Training time limit (seconds) | `300` |
+| `TARGET` | Target column | `"Sold Price"` |
+
+---
+
+## Model & preprocessing choices (brief)
+
+- **LightGBM-only**: `GBM` with modest rounds and early stopping → fast, strong baseline.
+- **Log1p transforms**: Stabilizes skewed numeric features and the target; predictions are inverted via `expm1`.
+- **No bagging/stacking**: Minimizes training time and memory for a quick academic demo.
+- **Threading**: Uses available CPU cores for faster training.
+
+---
+
+## Outputs
+
+- **Models + artifacts**: `AutoGluonModels/<run>/`
+- **Submission file**: `AutoGluonModels/<run>/submission.csv`
+- **Printed metrics**:
+  - Log-scale RMSE from AutoGluon.
+  - Inverted **$-scale RMSE** (easier to interpret).
+- **Kaggle submission**: Performed via CLI; a short summary table is shown.
+
+---
+
+## Common issues & tips
+
+- **\`403\`/\`404\` on download**: Ensure you joined the competition and accepted rules.
+- **\`kaggle.json\` not found**: Confirm it exists at `/content/kaggle.json` before running.
+- **Time limit too tight**: Increase `TL` (e.g., `600–1200`) for better accuracy.
+- **Memory/timeouts**: Lower `N_TRAIN` or keep LightGBM-only (already done here).
+
+---
+
+## Customize further
+
+- Add more models: enable `"CAT"`, `"XGB"`, `"RF"`, etc. in `hyperparameters`.
+- Improve quality: try `presets="medium_quality"` (increase `TL` accordingly).
+- Feature engineering: add domain features before training.
+- Validation scheme: replace the simple split with K-Fold for more robust estimates.
+
+---
+
+**License**: Use and modify freely for educational or competition purposes.
