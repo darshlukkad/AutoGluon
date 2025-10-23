@@ -7,7 +7,7 @@ A clean, reproducible baseline for the Kaggle competition **`california-house-pr
 ## Contents
 
 - [What this script does](#what-this-script-does)
-- [Quick start (Google Colab)](#quick-start-google-colab)
+- [Google Colab: End-to-End Guide](#google-colab-end-to-end-guide)
 - [Configuration knobs](#configuration-knobs)
 - [Data & preprocessing](#data--preprocessing)
 - [Modeling & training](#modeling--training)
@@ -22,7 +22,7 @@ A clean, reproducible baseline for the Kaggle competition **`california-house-pr
 
 ## What this script does
 
-1. **Installs** dependencies: `kaggle`, `autogluon.tabular`, `scikit-learn`  
+1. **Installs** dependencies: `kaggle`, `autogluon.tabular`, `scikit-learn`.  
 2. **Authenticates** the Kaggle CLI using your `kaggle.json` API token.  
 3. **Downloads & unzips** the competition files to a chosen data directory.  
 4. **Loads** `train.csv`, `test.csv`, and `sample_submission.csv`.  
@@ -40,26 +40,32 @@ A clean, reproducible baseline for the Kaggle competition **`california-house-pr
 9. **Predicts** on `test.csv` and writes a **`submission.csv`** in the model folder.
 10. **Submits** to Kaggle via CLI and lists your latest submissions.
 
-## Quick start (Google Colab)
+---
 
-1. Open a new Colab notebook and paste the script from this repo.
-2. Make sure you have your `kaggle.json` API token handy.
-   - In Colab: **Files → Upload** `kaggle.json` to `/content/` (matches the script), **or** adjust the path.
-3. Run the notebook cells in order. You should see output like:
-   - competition files downloaded,
-   - model training logs,
-   - holdout metrics,
-   - path to `submission.csv`,
-   - Kaggle submission result.
+## Google Colab: End-to-End Guide
 
-> **Important**: The script currently copies `kaggle.json` from `/content/kaggle.json`. If you keep your token in Google Drive, change the copy command to point to your Drive path (e.g., `/content/drive/MyDrive/kaggle/kaggle.json`).
+This project is designed to run smoothly on **Google Colab**. Here’s everything you need to know to go from a blank notebook to a Kaggle submission:
 
-## Configuration knobs
+### 1) Prepare your Kaggle API token
 
-These are defined near the top of the script:
+- Go to **Kaggle → Account → API → Create New Token**.  
+- You’ll download a file named **`kaggle.json`**. Keep it handy.
+
+### 2) Choose where to put `kaggle.json` in Colab
+
+You have two easy options—**either is fine**. The script supports both:
+
+**Option A — Upload directly to `/content` (fastest):**
+1. In Colab, click the **folder** icon (left sidebar) → **Upload** → pick `kaggle.json`.
+2. It will appear as `/content/kaggle.json`.
+
+**Option B — Store in Google Drive (persists across sessions):**
+1. Put `kaggle.json` somewhere in Drive, e.g. `MyDrive/kaggle/kaggle.json`.
+2. The script mounts Drive and you can copy from there (see next steps).
+
+> The default script copies from `/content/kaggle.json`. If you prefer Drive, change the copy command to the Drive path (example below).
+
+### 3) Install packages (first notebook cell)
 
 ```python
-KAGGLE_COMPETITION = "california-house-prices"
-DATA_DIR = "/content/data"
-DATASET = os.path.join(DATA_DIR, KAGGLE_COMPETITION)
-AUTOGLUON_SAVE_PATH = os.path.join(DATA_DIR, "AutoGluonModels")
+!pip install -q kaggle autogluon.tabular scikit-learn
